@@ -1,0 +1,25 @@
+# Segredos e ambiente
+.env
+*.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+build/
+dist/
+
+# Ferramentas de qualidade
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Nix
+.direnv/
+result
