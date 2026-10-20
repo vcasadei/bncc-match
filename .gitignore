@@ -23,3 +23,6 @@ htmlcov/
 # Nix
 .direnv/
 result
+
+# Data lake (bronze/silver/manifesto)
+data/
