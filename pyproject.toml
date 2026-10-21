@@ -10,6 +10,8 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "alembic>=1.13.0",
     "pdfplumber>=0.11.0",
+    "google-api-python-client>=2.140.0",
+    "youtube-transcript-api>=0.6.0",
 ]
 
 [project.scripts]
@@ -50,6 +52,14 @@ module = [
     "pdfplumber.*",
     "reportlab",
     "reportlab.*",
+    "googleapiclient",
+    "googleapiclient.*",
+    "google",
+    "google.*",
+    "httplib2",
+    "httplib2.*",
+    "youtube_transcript_api",
+    "youtube_transcript_api.*",
 ]
 ignore_missing_imports = true
 

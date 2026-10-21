@@ -129,6 +129,10 @@ def transform(
     """
     r = resolve_root(root)
 
+    # Fonte bronze sem arquivos: nada a transformar (não é erro).
+    if not list((r / "bronze" / source).glob("*/*.jsonl")):
+        return {"path": None, "row_count": 0, "rejected": 0, "columns": []}
+
     names = bronze.describe(source, root=r)
     rows = bronze.read(source, root=r).fetchall()
     records = [dict(zip(names, row)) for row in rows]
