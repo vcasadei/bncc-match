@@ -1,0 +1,43 @@
+[
+  {
+    "code": "EI03A01",
+    "text": "Apropriar-se da escuta e da fala como forma de comunicação e da leitura e da escrita.",
+    "year": null,
+    "stage": "infantil",
+    "path": [
+      ["stage", "Educação Infantil"],
+      ["area", "4 a 6 anos"],
+      ["component", "Escuta, fala, pensamento e imaginação"]
+    ],
+    "extras": {
+      "faixa_etaria": "4 a 6 anos",
+      "campo_experiencia": "Escuta, fala, pensamento e imaginação"
+    }
+  },
+  {
+    "code": "EF05MA03",
+    "text": "Comparar e ordenar números naturais, situando-os na reta numérica.",
+    "year": 5,
+    "stage": "fundamental",
+    "path": [
+      ["stage", "Ensino Fundamental"],
+      ["area", "Matemática"],
+      ["component", "Matemática"],
+      ["thematic_unit", "Números"],
+      ["knowledge_object", "Números naturais"]
+    ],
+    "extras": {}
+  },
+  {
+    "code": "EM13CHS101",
+    "text": "Analisar e interpretar as condições de possibilidade e de limitação do trabalho humano nas sociedades estudadas.",
+    "year": 13,
+    "stage": "medio",
+    "path": [
+      ["stage", "Ensino Médio"],
+      ["area", "Ciências Humanas e Sociais Aplicadas"],
+      ["component", "Competências específicas de Ciências Humanas e Sociais Aplicadas"]
+    ],
+    "extras": {}
+  }
+]
