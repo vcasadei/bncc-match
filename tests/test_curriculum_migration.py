@@ -15,6 +15,7 @@ from bncc_match.db import Base, make_engine
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_TABLES = {"curriculum_node", "ingestion_run", "skill"}
+VIDEO_TABLES = {"video", "video_topic", "transcript", "job_queue", "quota_state"}
 
 
 def _tables(db: Path) -> set[str]:
@@ -46,18 +47,26 @@ def _alembic_config() -> Config:
 
 
 def test_migration_up_down_up(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Tasks 1.1/1.2: upgrade cria, downgrade remove, upgrade reconstrói."""
+    """Tasks 1.1/1.3: upgrade cria, downgrade remove, upgrade reconstrói."""
     db = tmp_path / "migrate.db"
     monkeypatch.setenv("BNCC_DB_PATH", str(db))
+    cfg = _alembic_config()
 
-    command.upgrade(_alembic_config(), "head")
-    assert EXPECTED_TABLES <= _tables(db)
+    command.upgrade(cfg, "head")
+    assert EXPECTED_TABLES | VIDEO_TABLES <= _tables(db)
 
-    command.downgrade(_alembic_config(), "-1")
-    assert not (EXPECTED_TABLES & _tables(db))
+    # downgrade -1: remove só o conjunto vídeo/fila (migration 0002).
+    command.downgrade(cfg, "-1")
+    tables = _tables(db)
+    assert EXPECTED_TABLES <= tables
+    assert not (VIDEO_TABLES & tables)
 
-    command.upgrade(_alembic_config(), "head")
-    assert EXPECTED_TABLES <= _tables(db)
+    # downgrade -1: remove o conjunto do currículo (migration 0001).
+    command.downgrade(cfg, "-1")
+    assert not (EXPECTED_TABLES | VIDEO_TABLES) & _tables(db)
+
+    command.upgrade(cfg, "head")
+    assert EXPECTED_TABLES | VIDEO_TABLES <= _tables(db)
 
 
 def test_make_engine_in_memory() -> None:
