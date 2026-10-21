@@ -8,10 +8,10 @@ SQLite usado pela aplicação e pelos testes.
 import os
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 import bncc_match.models  # noqa: F401  # registra as tables no Base.metadata
+from alembic import context
 from bncc_match.db import Base
 
 config = context.config

@@ -99,9 +99,9 @@ Em Python (API interna usada pelas próximas capabilities):
 ```python
 from bncc_match.curriculum import get_skill, list_skill_codes
 
-skill = get_skill("EF05MA03")   # dict com code/text/year/stage/status/ancestors
-                                  # (None se o código não existir — sem exceção)
-list_skill_codes()              # códigos ativos, em ordem alfabética
+skill = get_skill("EF05MA03")  # dict com code/text/year/stage/status/ancestors
+# (None se o código não existir — sem exceção)
+list_skill_codes()  # códigos ativos, em ordem alfabética
 ```
 
 `ancestors` é a cadeia de ancestrais em ordem raiz → nó-pai; cada entrada tem
