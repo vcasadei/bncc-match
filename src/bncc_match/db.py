@@ -7,8 +7,9 @@ e pelas migrações Alembic.
 
 import os
 from pathlib import Path
+from typing import Any
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -41,18 +42,37 @@ def make_engine(db_file: str | Path | None = None, in_memory: bool = False) -> E
         in_memory: Se ``True``, usa SQLite em memória (uma única conexão).
 
     Returns:
-        Engine configurado.
+        Engine configurado (SQLite com WAL para leitura durante escrita).
     """
     if in_memory:
         # StaticPool mantém UMA conexão: memória compartilhada no in-memory.
-        return create_engine(
+        engine = create_engine(
             "sqlite://",
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
-    path = Path(db_file) if db_file is not None else db_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    return create_engine(f"sqlite:///{path}")
+    else:
+        path = Path(db_file) if db_file is not None else db_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        engine = create_engine(f"sqlite:///{path}")
+    _enable_sqlite_wal(engine)
+    return engine
+
+
+def _enable_sqlite_wal(engine: Engine) -> None:
+    """Habilita WAL no SQLite (leituras durante escrita, processo único).
+
+    Args:
+        engine: Engine SQLite a configurar.
+    """
+    if engine.dialect.name != "sqlite":
+        return
+
+    @event.listens_for(engine, "connect")
+    def _on_connect(dbapi_conn: Any, _record: Any) -> None:
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.close()
 
 
 def make_session_factory(engine: Engine) -> sessionmaker[Session]:

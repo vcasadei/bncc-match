@@ -1,19 +1,27 @@
-"""Models SQLAlchemy do currículo BNCC (gold).
+"""Models SQLAlchemy do bncc-match (gold SQLite).
 
-Três tabelas:
+Currículo BNCC: ``curriculum_node`` (árvore tipada), ``skill`` (``code``
+único como chave natural) e ``ingestion_run`` (proveniência).
 
-- ``curriculum_node``: árvore de nós tipados (stage/area/component/
-  thematic_unit/knowledge_object/skill) com referência de pai.
-- ``skill``: dado rico da habilidade (``code`` único como chave natural,
-  ``node_id`` FK para o nó correspondente, ``text``, ``year``).
-- ``ingestion_run``: proveniência de cada ingestão (fonte, versão, data).
+Catálogo de vídeos: ``video`` (``youtube_id`` único = chave natural),
+``video_topic`` (junção vídeo ↔ tópico) e ``transcript`` (1:1 por vídeo).
+
+Fila: ``job_queue`` (estado, tentativas, retry, quota) e ``quota_state``
+(consumo diário de quota da YouTube Data API).
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bncc_match.db import Base
@@ -82,3 +90,96 @@ class IngestionRun(Base):
     source_url: Mapped[str] = mapped_column(String, nullable=False)
     source_version: Mapped[str | None] = mapped_column(String, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+
+# Status de vídeo na fila de ingestão.
+VIDEO_DISCOVERED = "discovered"
+VIDEO_TRANSCRIBED = "transcribed"
+VIDEO_TRANSCRIPT_FAILED = "transcript_failed"
+
+# Status de transcrição.
+TRANSCRIPT_TRANSCRIBED = "transcribed"
+TRANSCRIPT_UNAVAILABLE = "unavailable"
+TRANSCRIPT_FAILED = "failed"
+
+# Tipos de job na fila.
+JOB_SEARCH_TOPIC = "search_topic"
+JOB_TRANSCRIBE_VIDEO = "transcribe_video"
+
+# Status de job.
+JOB_PENDING = "pending"
+JOB_IN_PROGRESS = "in_progress"
+JOB_COMPLETED = "completed"
+JOB_RETRY = "retry"
+JOB_DEAD = "dead"
+
+
+class Video(Base):
+    """Metadados de um vídeo do YouTube, com ``youtube_id`` como chave natural."""
+
+    __tablename__ = "video"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    youtube_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False, default="")
+    channel_name: Mapped[str] = mapped_column(String, nullable=False, default="")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    url: Mapped[str] = mapped_column(String, nullable=False, default="")
+    thumbnail_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String, nullable=False, default=VIDEO_DISCOVERED
+    )
+
+
+class VideoTopic(Base):
+    """Associação N:N entre vídeo e tópico curricular (nó da árvore)."""
+
+    __tablename__ = "video_topic"
+
+    video_id: Mapped[int] = mapped_column(ForeignKey("video.id"), primary_key=True)
+    curriculum_node_id: Mapped[int] = mapped_column(
+        ForeignKey("curriculum_node.id"), primary_key=True
+    )
+
+
+class Transcript(Base):
+    """Transcrição (legendas) de um vídeo — uma por vídeo (FK única)."""
+
+    __tablename__ = "transcript"
+
+    video_id: Mapped[int] = mapped_column(ForeignKey("video.id"), primary_key=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    language: Mapped[str | None] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class JobQueue(Base):
+    """Item de trabalho persistente (tópico a buscar / vídeo a transcrever)."""
+
+    __tablename__ = "job_queue"
+    __table_args__ = (
+        UniqueConstraint("job_type", "reference_key", name="uq_job_type_ref"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    job_type: Mapped[str] = mapped_column(String, nullable=False)
+    reference_key: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default=JOB_PENDING)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    last_error: Mapped[str | None] = mapped_column(String, nullable=True)
+    next_retry_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    quota_consumed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+
+class QuotaState(Base):
+    """Consumo de quota da YouTube Data API por dia (janela diária)."""
+
+    __tablename__ = "quota_state"
+
+    day: Mapped[str] = mapped_column(String, primary_key=True)
+    units_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
